@@ -1,0 +1,149 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "try": {
+                "type": "Scope",
+                "actions": {
+                    "HTTP-Send_To_SB": {
+                        "type": "Http",
+                        "inputs": {
+                            "uri": "https://@{variables('varNamespace')}.servicebus.windows.net/@{variables('varTopic')}/messages?timeout=60",
+                            "method": "POST",
+                            "headers": {
+                                "Entity": "DB-Timesheet",
+                                "Owner": "Dynamics",
+                                "Subject": "Sub @{variables('varTopic')}",
+                                "BrokerProperties": "{\"Label\":\"M1\", \"SessionId\" : \"DK-1\", \"ReplyToSessionId\": \"D365\"}"
+                            },
+                            "body": {
+                                "hello": "@triggerBody()?['name']",
+                                "greet": "@triggerBody()?['message']"
+                            },
+                            "authentication": {
+                                "type": "ManagedServiceIdentity",
+                                "audience": "https://servicebus.azure.net"
+                            }
+                        },
+                        "runtimeConfiguration": {
+                            "contentTransfer": {
+                                "transferMode": "Chunked"
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "SBTopicname": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "exceptions": {
+                "type": "Scope",
+                "actions": {
+                    "Bad-Response": {
+                        "type": "Response",
+                        "kind": "Http",
+                        "inputs": {
+                            "statusCode": 400
+                        }
+                    }
+                },
+                "runAfter": {
+                    "try": [
+                        "TIMEDOUT",
+                        "SKIPPED",
+                        "FAILED"
+                    ]
+                }
+            },
+            "finally": {
+                "type": "Scope",
+                "actions": {
+                    "Ok-Response": {
+                        "type": "Response",
+                        "kind": "Http",
+                        "inputs": {
+                            "statusCode": 200,
+                            "body": "Hello @{triggerBody()?['name']}, @{triggerBody()?['message']}...!!!"
+                        }
+                    }
+                },
+                "runAfter": {
+                    "try": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "varMsg": {
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varMessage",
+                            "type": "string",
+                            "value": "Sending message to SB via https and setting up system properties"
+                        }
+                    ]
+                },
+                "runAfter": {}
+            },
+            "SB-NameSpace": {
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varNamespace",
+                            "type": "string",
+                            "value": "eh-ae-devint-ss-servicebus"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "varMsg": [
+                        "SUCCEEDED"
+                    ]
+                }
+            },
+            "SBTopicname": {
+                "type": "InitializeVariable",
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "varTopic",
+                            "type": "string",
+                            "value": "testd365"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "SB-NameSpace": [
+                        "SUCCEEDED"
+                    ]
+                }
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "triggers": {
+            "When_a_HTTP_request_is_received": {
+                "type": "Request",
+                "kind": "Http",
+                "inputs": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "message": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "kind": "Stateful"
+}
