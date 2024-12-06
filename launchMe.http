@@ -1,0 +1,10 @@
+@base=http://localhost:7142/
+
+### Unit Testing for HM Objects ###
+POST {{base}}api/FnSendToSB
+Content-Type: application/json
+
+{
+  "id": "007",
+  "opt":"send2sb"
+}

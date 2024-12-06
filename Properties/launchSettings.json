@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "DK_PoC_SendToSB_FN": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7142",
+      "launchBrowser": false
+    }
+  }
+}
